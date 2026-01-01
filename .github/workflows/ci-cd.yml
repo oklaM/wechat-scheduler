@@ -149,12 +149,12 @@ jobs:
 
         steps:
             - name: Notify success
-              if: needs ci.result == 'success' && needs security.result == 'success' && needs docker-build.result == 'success'
+              if: needs['ci'].result == 'success' && needs['security'].result == 'success' && needs['docker-build'].result == 'success'
               run: |
                   echo "✅ CI/CD pipeline completed successfully!"
 
             - name: Notify failure
-              if: needs ci.result == 'failure' || needs security.result == 'failure' || needs docker-build.result == 'failure'
+              if: needs['ci'].result == 'failure' || needs['security'].result == 'failure' || needs['docker-build'].result == 'failure'
               run: |
                   echo "❌ CI/CD pipeline failed!"
                   echo "Failed jobs:"
