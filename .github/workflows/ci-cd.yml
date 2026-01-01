@@ -144,16 +144,16 @@ jobs:
                   port: ${{ secrets.STAGING_SSH_PORT || 22 }}
                   script: |
                       echo "Deploying to staging environment..."
-                      
+
                       # 拉取最新的 Docker 镜像
                       echo "Pulling latest image..."
                       docker pull ${{ needs.docker-build.outputs.image }}
-                      
+
                       # 停止并删除旧容器（如果存在）
                       echo "Stopping old container..."
                       docker stop wechat-scheduler-staging || true
                       docker rm wechat-scheduler-staging || true
-                      
+
                       # 启动新容器
                       echo "Starting new container..."
                       docker run -d \
@@ -169,7 +169,7 @@ jobs:
                         --network bridge \
                         -p 3001:3000 \
                         ${{ needs.docker-build.outputs.image }}
-                      
+
                       echo "Staging deployment completed successfully!"
                       echo "Image tags: ${{ needs.docker-build.outputs.image }}"
 
@@ -193,16 +193,16 @@ jobs:
                   port: ${{ secrets.PRODUCTION_SSH_PORT || 22 }}
                   script: |
                       echo "Deploying to production environment..."
-                      
+
                       # 拉取最新的 Docker 镜像
                       echo "Pulling latest image..."
                       docker pull ${{ needs.docker-build.outputs.image }}
-                      
+
                       # 停止并删除旧容器（如果存在）
                       echo "Stopping old container..."
                       docker stop wechat-scheduler || true
                       docker rm wechat-scheduler || true
-                      
+
                       # 启动新容器（生产环境）
                       echo "Starting new production container..."
                       docker run -d \
@@ -218,12 +218,12 @@ jobs:
                         --network bridge \
                         -p 3000:3000 \
                         ${{ needs.docker-build.outputs.image }}
-                      
+
                       # 健康检查
                       echo "Performing health check..."
                       sleep 10
                       curl -f http://localhost:3000/health || echo "Health check failed"
-                      
+
                       echo "Production deployment completed successfully!"
                       echo "Image tags: ${{ needs.docker-build.outputs.image }}"
 
