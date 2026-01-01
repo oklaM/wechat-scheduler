@@ -150,9 +150,12 @@ jobs:
                   script: |
                       echo "Deploying to staging environment..."
 
+                      # 设置镜像变量
+                      IMAGE_TAG="${{ needs.docker-build.outputs.image }}"
+
                       # 拉取最新的 Docker 镜像
-                      echo "Pulling latest image..."
-                      docker pull ${{ needs.docker-build.outputs.image }}
+                      echo "Pulling latest image: ${IMAGE_TAG}"
+                      docker pull "${IMAGE_TAG}"
 
                       # 停止并删除旧容器（如果存在）
                       echo "Stopping old container..."
@@ -199,9 +202,12 @@ jobs:
                   script: |
                       echo "Deploying to production environment..."
 
+                      # 设置镜像变量
+                      IMAGE_TAG="${{ needs.docker-build.outputs.image }}"
+
                       # 拉取最新的 Docker 镜像
-                      echo "Pulling latest image..."
-                      docker pull ${{ needs.docker-build.outputs.image }}
+                      echo "Pulling latest image: ${IMAGE_TAG}"
+                      docker pull "${IMAGE_TAG}"
 
                       # 停止并删除旧容器（如果存在）
                       echo "Stopping old container..."
@@ -214,15 +220,16 @@ jobs:
                         --name wechat-scheduler \
                         --env WECHAT_APPID="${{ secrets.WECHAT_APPID }}" \
                         --env WECHAT_SECRET="${{ secrets.WECHAT_SECRET }}" \
-                        --env WECHAT_ACCESS_TOKEN="${{ secrets.WECHAT_ACCESS_TOKEN }}" \
+                        --env WECHAT_ACCESS_TOKEN="${{ secrets.WECHAT_ACCESS_TOKEN || '' }}" \
                         --env COZE_AUTH_TOKEN="${{ secrets.COZE_AUTH_TOKEN }}" \
-                        --env COZE_URL="${{ secrets.PRODUCTION_CZE_URL || 'https://2kkf772qbd.coze.site/run' }}" \
+                        --env COZE_URL="https://2kkf772qbd.coze.site/run" \
                         --env SCHEDULE_TIME="${{ secrets.PRODUCTION_SCHEDULE_TIME || '0 0 8 * * *' }}" \
                         --env AUTO_PUBLISH="${{ secrets.PRODUCTION_AUTO_PUBLISH || 'false' }}" \
+                        --env LOG_LEVEL="warn" \
                         --restart always \
                         --network bridge \
                         -p 3000:3000 \
-                        ${{ needs.docker-build.outputs.image }}
+                        "${IMAGE_TAG}"
 
                       # 健康检查
                       echo "Performing health check..."
