@@ -1,0 +1,56 @@
+{
+    "name": "wechat-scheduler",
+    "version": "1.0.0",
+    "description": "微信公众号定时服务 - 基于Coze API的自动化定时任务系统",
+    "main": "wechat-scheduler.js",
+    "scripts": {
+        "start": "node wechat-scheduler.js",
+        "dev": "nodemon wechat-scheduler.js",
+        "pm2:start": "pm2 start ecosystem.config.js",
+        "pm2:stop": "pm2 stop wechat-scheduler",
+        "pm2:restart": "pm2 restart wechat-scheduler",
+        "pm2:delete": "pm2 delete wechat-scheduler",
+        "docker:build": "docker build -t wechat-scheduler .",
+        "docker:run": "docker run -d --name wechat-scheduler --env-file .env wechat-scheduler",
+        "docker:logs": "docker logs -f wechat-scheduler",
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "lint": "eslint .",
+        "lint:fix": "eslint . --fix",
+        "format": "prettier --write .",
+        "format:check": "prettier --check ."
+    },
+    "keywords": [
+        "wechat",
+        "scheduler",
+        "coze",
+        "cron",
+        "automation",
+        "nodejs"
+    ],
+    "author": "Your Name",
+    "license": "MIT",
+    "dependencies": {
+        "axios": "^1.6.0",
+        "node-cron": "^3.0.3",
+        "dotenv": "^16.3.1",
+        "winston": "^3.11.0"
+    },
+    "devDependencies": {
+        "nodemon": "^3.0.1",
+        "eslint": "^8.54.0",
+        "prettier": "^3.1.0",
+        "pm2": "^5.3.0"
+    },
+    "engines": {
+        "node": ">=16.0.0",
+        "npm": ">=8.0.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/yourusername/wechat-scheduler.git"
+    },
+    "bugs": {
+        "url": "https://github.com/yourusername/wechat-scheduler/issues"
+    },
+    "homepage": "https://github.com/yourusername/wechat-scheduler#readme"
+}
