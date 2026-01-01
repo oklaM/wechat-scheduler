@@ -25,16 +25,16 @@ graph TB
     B --> C[Docker Build]
     B --> D[Security Scan]
     B --> E[Deploy to Registry]
-    
+
     C --> F[Production Server]
     E --> F
     F --> G[Docker Compose]
-    
+
     G --> H[Wechat Scheduler]
     G --> I[Redis Cache]
     G --> J[Prometheus]
     G --> K[Grafana]
-    
+
     H --> L[WeChat API]
     H --> M[Coze API]
 ```
@@ -59,6 +59,7 @@ cd wechat-scheduler
 ```
 
 启动脚本会自动：
+
 - 检查环境依赖
 - 配置环境变量
 - 安装项目依赖
@@ -100,16 +101,19 @@ npm install
 #### 3. 启动服务
 
 **直接运行**
+
 ```bash
 node wechat-scheduler.js
 ```
 
 **PM2 管理**
+
 ```bash
 npm run pm2:start
 ```
 
 **Docker 运行**
+
 ```bash
 docker-compose up -d
 ```
@@ -145,22 +149,25 @@ docker-compose up -d
 ### GitHub Actions 工作流
 
 #### 1. CI Pipeline
+
 - **代码检查**：ESLint + Prettier
 - **安全扫描**：npm audit + CodeQL
 - **多版本测试**：Node.js 16, 18, 20
 - **构建验证**：应用构建测试
 
 #### 2. Docker Build
+
 - **多平台构建**：linux/amd64 + linux/arm64
 - **镜像优化**：多阶段构建 + 缓存优化
 - **安全扫描**：容器镜像安全检查
 - **自动推送**：GHCR 镜像仓库
 
 #### 3. 自动部署
+
 - **分支策略**：
-  - `main` → 生产环境
-  - `develop` → 测试环境
-  - `feature/*` → 功能分支（仅 CI）
+    - `main` → 生产环境
+    - `develop` → 测试环境
+    - `feature/*` → 功能分支（仅 CI）
 - **部署验证**：健康检查 + 回滚机制
 
 ### 使用说明
@@ -282,15 +289,15 @@ wechat-scheduler/
 
 ### 环境变量
 
-| 变量名 | 必需 | 默认值 | 描述 |
-|--------|------|--------|------|
-| `WECHAT_APPID` | ✅ | - | 微信公众号 AppID |
-| `WECHAT_SECRET` | ✅ | - | 微信公众号 Secret |
-| `COZE_AUTH_TOKEN` | ✅ | - | Coze API 认证令牌 |
-| `SCHEDULE_TIME` | ❌ | `0 0 8 * * *` | 定时任务表达式 |
-| `AUTO_PUBLISH` | ❌ | `false` | 是否自动发布 |
-| `LOG_LEVEL` | ❌ | `info` | 日志级别 |
-| `NODE_ENV` | ❌ | `production` | 运行环境 |
+| 变量名            | 必需 | 默认值        | 描述              |
+| ----------------- | ---- | ------------- | ----------------- |
+| `WECHAT_APPID`    | ✅   | -             | 微信公众号 AppID  |
+| `WECHAT_SECRET`   | ✅   | -             | 微信公众号 Secret |
+| `COZE_AUTH_TOKEN` | ✅   | -             | Coze API 认证令牌 |
+| `SCHEDULE_TIME`   | ❌   | `0 0 8 * * *` | 定时任务表达式    |
+| `AUTO_PUBLISH`    | ❌   | `false`       | 是否自动发布      |
+| `LOG_LEVEL`       | ❌   | `info`        | 日志级别          |
+| `NODE_ENV`        | ❌   | `production`  | 运行环境          |
 
 ### 定时任务表达式
 
@@ -375,6 +382,7 @@ docker-compose logs -f --tail=100
 ## 📝 更新日志
 
 ### v1.0.0 (2024-01-01)
+
 - ✨ 初始版本发布
 - 🚀 支持 Docker 容器化部署
 - 📊 集成监控和日志系统
