@@ -146,11 +146,15 @@ class WechatScheduler {
         }
 
         // 启动定时任务
-        this.task = cron.schedule(this.config.scheduleTime, async () => {
-            await this.executeTask();
-        }, {
-            scheduled: false
-        });
+        this.task = cron.schedule(
+            this.config.scheduleTime,
+            async () => {
+                await this.executeTask();
+            },
+            {
+                scheduled: false
+            }
+        );
 
         this.task.start();
         this.logger.info('定时任务已启动，等待执行...');
@@ -195,11 +199,13 @@ function createHealthCheckServer() {
                 'Content-Type': 'application/json',
                 'Cache-Control': 'no-cache'
             });
-            res.end(JSON.stringify({
-                status: 'ok',
-                service: 'wechat-scheduler',
-                timestamp: new Date().toISOString()
-            }));
+            res.end(
+                JSON.stringify({
+                    status: 'ok',
+                    service: 'wechat-scheduler',
+                    timestamp: new Date().toISOString()
+                })
+            );
         } else {
             res.writeHead(404, { 'Content-Type': 'text/plain' });
             res.end('Not Found');

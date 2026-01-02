@@ -28,22 +28,19 @@ class Logger {
 
         // 生产环境使用JSON格式，便于日志收集
         // 开发环境使用可读格式，便于调试
-        const consoleFormat = isProduction ?
-            winston.format.combine(
-                winston.format.timestamp(),
-                winston.format.json()
-            ) :
-            winston.format.combine(
-                winston.format.colorize(),
-                winston.format.printf((info) => {
-                    const { timestamp, level, message, ...meta } = info;
-                    let log = `${timestamp} [${level}]: ${message}`;
-                    if (Object.keys(meta).length > 0) {
-                        log += ` ${JSON.stringify(meta, null, 2)}`;
-                    }
-                    return log;
-                })
-            );
+        const consoleFormat = isProduction
+            ? winston.format.combine(winston.format.timestamp(), winston.format.json())
+            : winston.format.combine(
+                  winston.format.colorize(),
+                  winston.format.printf(info => {
+                      const { timestamp, level, message, ...meta } = info;
+                      let log = `${timestamp} [${level}]: ${message}`;
+                      if (Object.keys(meta).length > 0) {
+                          log += ` ${JSON.stringify(meta, null, 2)}`;
+                      }
+                      return log;
+                  })
+              );
 
         const transports = [
             // 文件日志：所有级别
