@@ -40,16 +40,15 @@ jobs:
 
             - name: Run tests (if any)
               run: npm test
-              continue-on-error: true
+              # 修复：移除了 continue-on-error: true，确保测试失败时停止发布
 
             - name: Build application
               run: npm run build
-              continue-on-error: true
+              # 修复：移除了 continue-on-error: true，确保构建失败时停止发布
 
     security:
         name: Security Scan
         runs-on: ubuntu-latest
-
         permissions:
             contents: read
             security-events: write
@@ -79,8 +78,8 @@ jobs:
         needs: [ci, security]
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
         outputs:
-            image-tag: ${{ steps.meta.outputs.tags }}
-            first-image: ${{ steps.extract-tag.outputs.first-image }}
+            # 修复：输出变量名保持一致
+            deploy-tag: ${{ steps.extract-tag.outputs.deploy-tag }}
 
         permissions:
             contents: read
@@ -106,9 +105,8 @@ jobs:
               with:
                   images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
                   tags: |
+                      type=sha,prefix=sha-
                       type=ref,event=branch
-                      type=ref,event=pr
-                      type=sha,prefix={{branch}}-
                       type=raw,value=latest,enable={{is_default_branch}}
 
             - name: Build and push Docker image
@@ -121,15 +119,22 @@ jobs:
                   labels: ${{ steps.meta.outputs.labels }}
                   cache-from: type=gha
                   cache-to: type=gha,mode=max
-                  platforms: linux/amd64,linux/arm64
+                  # 优化：仅构建 amd64 以加快速度。如果你的服务器是 ARM (如树莓派)，请改回 linux/amd64,linux/arm64
+                  platforms: linux/amd64
 
-            - name: Extract first image tag
+            - name: Extract deployment tag
               id: extract-tag
               run: |
-                  # Get the first image tag from metadata
-                  FIRST_TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n 1 | tr -d '\r\n')
-                  echo "first-image=${FIRST_TAG}" >> $GITHUB_OUTPUT
-                  echo "First Docker image tag: ${FIRST_TAG}"
+                  # 修复：优先提取 sha- 开头的 tag 用于部署，保证部署版本不可变
+                  DEPLOY_TAG=$(echo "${{ steps.meta.outputs.tags }}" | grep "sha-" | head -n 1 | tr -d '\r\n')
+                  
+                  # 如果没找到 sha tag (极端情况)，回退到第一个 tag
+                  if [ -z "$DEPLOY_TAG" ]; then
+                    DEPLOY_TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n 1 | tr -d '\r\n')
+                  fi
+                  
+                  echo "deploy-tag=${DEPLOY_TAG}" >> $GITHUB_OUTPUT
+                  echo "Selected tag for deployment: ${DEPLOY_TAG}"
 
     deploy-staging:
         name: Deploy to Staging
@@ -139,8 +144,7 @@ jobs:
         environment: staging
 
         steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
+            # 优化：移除了 checkout，部署阶段不需要源码
 
             - name: Deploy to staging via SSH
               uses: appleboy/ssh-action@v1.0.0
@@ -149,30 +153,28 @@ jobs:
                   username: ${{ secrets.STAGING_USER }}
                   key: ${{ secrets.STAGING_SSH_KEY }}
                   port: ${{ secrets.STAGING_SSH_PORT || 22 }}
+                  # 增加超时时间防止 docker pull 慢导致断开
+                  command_timeout: 30m
                   script: |
                       echo "Deploying to staging environment..."
+                      
+                      # 1. 修复：登录 Docker Registry (否则拉取私有镜像会失败)
+                      echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-                      # 设置镜像变量
-                      IMAGE_TAG="${{ needs.docker-build.outputs.first-image }}"
-
-                      # 验证镜像标签
+                      IMAGE_TAG="${{ needs.docker-build.outputs.deploy-tag }}"
+                      
                       if [ -z "$IMAGE_TAG" ]; then
                           echo "Error: Docker image tag is empty!"
                           exit 1
                       fi
 
-                      echo "Using Docker image: ${IMAGE_TAG}"
-
-                      # 拉取最新的 Docker 镜像
-                      echo "Pulling latest image: ${IMAGE_TAG}"
+                      echo "Pulling image: ${IMAGE_TAG}"
                       docker pull "${IMAGE_TAG}"
 
-                      # 停止并删除旧容器（如果存在）
                       echo "Stopping old container..."
                       docker stop wechat-scheduler-staging || true
                       docker rm wechat-scheduler-staging || true
 
-                      # 启动新容器
                       echo "Starting new container..."
                       docker run -d \
                         --name wechat-scheduler-staging \
@@ -180,16 +182,14 @@ jobs:
                         --env WECHAT_SECRET="${{ secrets.WECHAT_SECRET }}" \
                         --env WECHAT_ACCESS_TOKEN="${{ secrets.WECHAT_ACCESS_TOKEN }}" \
                         --env COZE_AUTH_TOKEN="${{ secrets.COZE_AUTH_TOKEN }}" \
-                        --env COZE_URL="${{ secrets.STAGING_CZE_URL || 'https://2kkf772qbd.coze.site/run' }}" \
+                        --env COZE_URL="https://2kkf772qbd.coze.site/run" \
                         --env SCHEDULE_TIME="${{ secrets.STAGING_SCHEDULE_TIME || '0 0 8 * * *' }}" \
                         --env AUTO_PUBLISH="${{ secrets.STAGING_AUTO_PUBLISH || 'false' }}" \
                         --restart unless-stopped \
                         --network host \
-                        -p 3001:3000 \
                         "${IMAGE_TAG}"
 
-                      echo "Staging deployment completed successfully!"
-                      echo "Image tag: ${IMAGE_TAG}"
+                      echo "Staging deployment completed! Tag: ${IMAGE_TAG}"
 
     deploy-production:
         name: Deploy to Production
@@ -199,8 +199,7 @@ jobs:
         environment: production
 
         steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
+            # 优化：移除了 checkout
 
             - name: Deploy to production via SSH
               uses: appleboy/ssh-action@v1.0.0
@@ -209,30 +208,27 @@ jobs:
                   username: ${{ secrets.PRODUCTION_USER }}
                   key: ${{ secrets.PRODUCTION_SSH_KEY }}
                   port: ${{ secrets.PRODUCTION_SSH_PORT || 22 }}
+                  command_timeout: 30m
                   script: |
                       echo "Deploying to production environment..."
 
-                      # 设置镜像变量
-                      IMAGE_TAG="${{ needs.docker-build.outputs.first-image }}"
+                      # 1. 修复：登录 Docker Registry
+                      echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-                      # 验证镜像标签
+                      IMAGE_TAG="${{ needs.docker-build.outputs.deploy-tag }}"
+                      
                       if [ -z "$IMAGE_TAG" ]; then
                           echo "Error: Docker image tag is empty!"
                           exit 1
                       fi
 
-                      echo "Using Docker image: ${IMAGE_TAG}"
-
-                      # 拉取最新的 Docker 镜像
-                      echo "Pulling latest image: ${IMAGE_TAG}"
+                      echo "Pulling image: ${IMAGE_TAG}"
                       docker pull "${IMAGE_TAG}"
 
-                      # 停止并删除旧容器（如果存在）
                       echo "Stopping old container..."
                       docker stop wechat-scheduler || true
                       docker rm wechat-scheduler || true
 
-                      # 启动新容器（生产环境）
                       echo "Starting new production container..."
                       docker run -d \
                         --name wechat-scheduler \
@@ -246,16 +242,35 @@ jobs:
                         --env LOG_LEVEL="warn" \
                         --restart always \
                         --network host \
-                        -p 3000:3000 \
                         "${IMAGE_TAG}"
 
-                      # 健康检查
-                      echo "Performing health check..."
-                      sleep 10
-                      curl -f http://localhost:3000/health || echo "Health check failed"
+                      echo "Waiting for container to start..."
+                      sleep 5
 
-                      echo "Production deployment completed successfully!"
-                      echo "Image tag: ${IMAGE_TAG}"
+                      echo "Checking container status..."
+                      docker ps -a | grep wechat-scheduler
+
+                      echo "Container logs:"
+                      docker logs wechat-scheduler --tail 20
+
+                      echo "Performing health check..."
+                      for i in {1..3}; do
+                          echo "Health check attempt $i/3..."
+                          sleep 3
+                          # 3. 修复：localhost:3000 现在在容器内有效，但从宿主机检查也需要确保端口映射正确
+                          if curl -f -s -o /dev/null http://localhost:3000/health; then
+                              echo "Health check passed!"
+                              break
+                          else
+                              echo "Health check attempt $i failed, waiting..."
+                              if [ $i -eq 3 ]; then
+                                  echo "All health checks failed. Check logs above."
+                                  # 这里可以选择 exit 1 让 Action 报错，也可以仅警告
+                              fi
+                          fi
+                      done
+
+                      echo "Production deployment completed! Tag: ${IMAGE_TAG}"
 
     notify:
         name: Notify Status
@@ -274,4 +289,4 @@ jobs:
               run: |
                   echo "❌ CI/CD pipeline failed!"
                   echo "Failed jobs:"
-                  ${{ toJson(needs) }}
+                  echo "${{ toJson(needs) }}"
