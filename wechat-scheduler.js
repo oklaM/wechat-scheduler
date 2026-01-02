@@ -25,6 +25,9 @@ class WechatScheduler {
 
         // 任务实例
         this.task = null;
+
+        // 执行记录
+        this.lastExecutionTime = null;
     }
 
     validateConfig() {
@@ -119,6 +122,9 @@ class WechatScheduler {
             const endTime = new Date();
             const duration = endTime - startTime;
 
+            // 记录执行时间
+            this.lastExecutionTime = startTime.toISOString();
+
             this.logger.info(`定时任务执行成功 - ${endTime.toLocaleString('zh-CN')} (耗时: ${duration}ms)`);
             this.logger.info('执行结果:', result);
 
@@ -126,6 +132,9 @@ class WechatScheduler {
         } catch (error) {
             const endTime = new Date();
             const duration = endTime - startTime;
+
+            // 即使失败也记录执行时间
+            this.lastExecutionTime = startTime.toISOString();
 
             this.logger.error(`定时任务执行失败 - ${endTime.toLocaleString('zh-CN')} (耗时: ${duration}ms)`, error);
 
@@ -189,25 +198,184 @@ class WechatScheduler {
     }
 }
 
-// 健康检查服务器
-function createHealthCheckServer() {
+// Web服务器和API路由
+function createWebServer(scheduler) {
     const http = require('http');
+    const fs = require('fs');
+    const path = require('path');
+    const url = require('url');
 
-    return http.createServer((req, res) => {
-        if (req.url === '/health') {
+    // 静态文件映射
+    const staticFiles = {
+        '/': 'public/index.html',
+        '/styles.css': 'public/styles.css',
+        '/script.js': 'public/script.js',
+        '/favicon.ico': null // 可以添加favicon
+    };
+
+    // MIME类型映射
+    const mimeTypes = {
+        '.html': 'text/html; charset=utf-8',
+        '.css': 'text/css; charset=utf-8',
+        '.js': 'application/javascript; charset=utf-8',
+        '.json': 'application/json; charset=utf-8',
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.gif': 'image/gif',
+        '.ico': 'image/x-icon',
+        '.svg': 'image/svg+xml'
+    };
+
+    // 获取MIME类型
+    function getMimeType(filePath) {
+        const ext = path.extname(filePath).toLowerCase();
+        return mimeTypes[ext] || 'text/plain; charset=utf-8';
+    }
+
+    // 读取静态文件
+    function serveStaticFile(filePath, res) {
+        fs.readFile(filePath, (err, data) => {
+            if (err) {
+                res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+                res.end('File Not Found');
+                return;
+            }
+
+            const mimeType = getMimeType(filePath);
             res.writeHead(200, {
-                'Content-Type': 'application/json',
+                'Content-Type': mimeType,
+                'Cache-Control': 'max-age=3600'
+            });
+            res.end(data);
+        });
+    }
+
+    // 处理API请求
+    function handleApiRequest(req, res, pathname) {
+        const method = req.method;
+
+        // 设置CORS头
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+        if (method === 'OPTIONS') {
+            res.writeHead(200);
+            res.end();
+            return;
+        }
+
+        // 健康检查接口
+        if (pathname === '/health') {
+            res.writeHead(200, {
+                'Content-Type': 'application/json; charset=utf-8',
                 'Cache-Control': 'no-cache'
             });
             res.end(
                 JSON.stringify({
                     status: 'ok',
                     service: 'wechat-scheduler',
+                    timestamp: new Date().toISOString(),
+                    version: '1.0.0'
+                })
+            );
+            return;
+        }
+
+        // 获取服务状态
+        if (pathname === '/status' && method === 'GET') {
+            res.writeHead(200, {
+                'Content-Type': 'application/json; charset=utf-8',
+                'Cache-Control': 'no-cache'
+            });
+            res.end(
+                JSON.stringify({
+                    status: scheduler.task ? 'running' : 'stopped',
+                    lastExecution: scheduler.lastExecutionTime || null,
+                    scheduleTime: scheduler.config.scheduleTime,
+                    autoPublish: scheduler.config.autoPublish,
+                    runOnStart: scheduler.config.runOnStart,
                     timestamp: new Date().toISOString()
                 })
             );
+            return;
+        }
+
+        // 立即执行任务
+        if (pathname === '/execute' && method === 'POST') {
+            req.on('data', _chunk => {
+                // 读取请求体数据但不处理
+            });
+
+            req.on('end', async () => {
+                try {
+                    const result = await scheduler.executeTask();
+                    res.writeHead(200, {
+                        'Content-Type': 'application/json; charset=utf-8'
+                    });
+                    res.end(JSON.stringify(result));
+                } catch (error) {
+                    res.writeHead(500, {
+                        'Content-Type': 'application/json; charset=utf-8'
+                    });
+                    res.end(
+                        JSON.stringify({
+                            success: false,
+                            error: error.message
+                        })
+                    );
+                }
+            });
+            return;
+        }
+
+        // API路径未找到
+        res.writeHead(404, {
+            'Content-Type': 'application/json; charset=utf-8'
+        });
+        res.end(
+            JSON.stringify({
+                error: 'API endpoint not found',
+                path: pathname
+            })
+        );
+    }
+
+    // 处理静态文件请求
+    function handleStaticRequest(req, res, pathname) {
+        if (pathname === '/') {
+            serveStaticFile('public/index.html', res);
+            return;
+        }
+
+        const filePath = staticFiles[pathname];
+        if (filePath) {
+            serveStaticFile(filePath, res);
         } else {
-            res.writeHead(404, { 'Content-Type': 'text/plain' });
+            res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+            res.end('File Not Found');
+        }
+    }
+
+    // 创建HTTP服务器
+    return http.createServer((req, res) => {
+        const parsedUrl = url.parse(req.url);
+        const pathname = parsedUrl.pathname;
+
+        scheduler.logger.info(`${req.method} ${pathname}`);
+
+        // API请求
+        if (
+            pathname.startsWith('/api/') ||
+            pathname === '/health' ||
+            pathname === '/status' ||
+            pathname === '/execute'
+        ) {
+            handleApiRequest(req, res, pathname);
+        } else if (pathname === '/' || staticFiles[pathname]) {
+            handleStaticRequest(req, res, pathname);
+        } else {
+            res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
             res.end('Not Found');
         }
     });
@@ -218,10 +386,12 @@ if (require.main === module) {
     const scheduler = new WechatScheduler();
     const port = process.env.PORT || 3000;
 
-    // 启动健康检查服务器
-    const healthServer = createHealthCheckServer();
-    healthServer.listen(port, () => {
-        scheduler.logger.info(`健康检查服务器运行在端口 ${port}`);
+    // 启动Web服务器
+    const webServer = createWebServer(scheduler);
+    webServer.listen(port, () => {
+        scheduler.logger.info(`Web服务器运行在端口 ${port}`);
+        scheduler.logger.info(`控制台地址: http://localhost:${port}`);
+        scheduler.logger.info(`API健康检查: http://localhost:${port}/health`);
     });
 
     scheduler.startScheduler();

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>微信调度器控制台</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📱</text></svg>">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <h1 class="title">📱 微信调度器</h1>
+                <p class="subtitle">基于 Coze API 的自动化定时任务系统</p>
+            </div>
+        </header>
+
+        <main class="main">
+            <section class="control-panel">
+                <div class="card">
+                    <h2 class="card-title">🎯 任务控制</h2>
+                    <div class="status-info">
+                        <div class="status-item">
+                            <span class="status-label">当前状态:</span>
+                            <span id="serviceStatus" class="status-value">检查中...</span>
+                            <span id="statusIndicator" class="status-indicator"></span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">最后执行:</span>
+                            <span id="lastExecution" class="status-value">-</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">下次执行:</span>
+                            <span id="nextExecution" class="status-value">-</span>
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button id="executeNowBtn" class="btn btn-primary">
+                            <span class="btn-icon">🚀</span>
+                            立即执行任务
+                        </button>
+                        <button id="refreshStatusBtn" class="btn btn-secondary">
+                            <span class="btn-icon">🔄</span>
+                            刷新状态
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="execution-log">
+                <div class="card">
+                    <h2 class="card-title">📋 执行日志</h2>
+                    <div id="logContainer" class="log-container">
+                        <div class="log-placeholder">
+                            <p>等待任务执行或点击"立即执行任务"按钮...</p>
+                        </div>
+                    </div>
+                    <div class="log-actions">
+                        <button id="clearLogsBtn" class="btn btn-outline">
+                            <span class="btn-icon">🗑️</span>
+                            清空日志
+                        </button>
+                        <button id="downloadLogsBtn" class="btn btn-outline">
+                            <span class="btn-icon">💾</span>
+                            下载日志
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="system-info">
+                <div class="card">
+                    <h2 class="card-title">ℹ️ 系统信息</h2>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">服务版本:</span>
+                            <span id="serviceVersion" class="info-value">v1.0.0</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">运行环境:</span>
+                            <span id="environment" class="info-value">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">启动时间:</span>
+                            <span id="startupTime" class="info-value">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">定时表达式:</span>
+                            <span id="scheduleExpression" class="info-value">-</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>&copy; 2024 微信调度器 - 基于 Node.js 构建</p>
+        </footer>
+    </div>
+
+    <!-- 模态对话框 -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">提示</h3>
+                <button id="closeModal" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="modalMessage">消息内容</p>
+            </div>
+            <div class="modal-footer">
+                <button id="modalConfirm" class="btn btn-primary">确定</button>
+                <button id="modalCancel" class="btn btn-outline">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载指示器 -->
+    <div id="loadingIndicator" class="loading-indicator">
+        <div class="spinner"></div>
+        <p>处理中...</p>
+    </div>
+
+    <script src="/script.js"></script>
+</body>
+</html>
