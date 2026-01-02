@@ -127,12 +127,12 @@ jobs:
               run: |
                   # 修复：优先提取 sha- 开头的 tag 用于部署，保证部署版本不可变
                   DEPLOY_TAG=$(echo "${{ steps.meta.outputs.tags }}" | grep "sha-" | head -n 1 | tr -d '\r\n')
-                  
+
                   # 如果没找到 sha tag (极端情况)，回退到第一个 tag
                   if [ -z "$DEPLOY_TAG" ]; then
                     DEPLOY_TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n 1 | tr -d '\r\n')
                   fi
-                  
+
                   echo "deploy-tag=${DEPLOY_TAG}" >> $GITHUB_OUTPUT
                   echo "Selected tag for deployment: ${DEPLOY_TAG}"
 
@@ -157,12 +157,12 @@ jobs:
                   command_timeout: 30m
                   script: |
                       echo "Deploying to staging environment..."
-                      
+
                       # 1. 修复：登录 Docker Registry (否则拉取私有镜像会失败)
                       echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
                       IMAGE_TAG="${{ needs.docker-build.outputs.deploy-tag }}"
-                      
+
                       if [ -z "$IMAGE_TAG" ]; then
                           echo "Error: Docker image tag is empty!"
                           exit 1
@@ -216,7 +216,7 @@ jobs:
                       echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
                       IMAGE_TAG="${{ needs.docker-build.outputs.deploy-tag }}"
-                      
+
                       if [ -z "$IMAGE_TAG" ]; then
                           echo "Error: Docker image tag is empty!"
                           exit 1
