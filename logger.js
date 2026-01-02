@@ -101,7 +101,7 @@ class Logger {
 
     // 便捷方法：记录API错误
     apiError(operation, error, response = null) {
-        let details = {
+        const details = {
             operation,
             status: response?.status,
             statusText: response?.statusText,

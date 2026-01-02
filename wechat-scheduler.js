@@ -188,7 +188,7 @@ class WechatScheduler {
 // 健康检查服务器
 function createHealthCheckServer() {
     const http = require('http');
-    
+
     return http.createServer((req, res) => {
         if (req.url === '/health') {
             res.writeHead(200, {
