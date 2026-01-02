@@ -45,6 +45,8 @@
         "@commitlint/cli": "^20.3.0",
         "@commitlint/config-conventional": "^20.3.0",
         "eslint": "^8.54.0",
+        "eslint-config-prettier": "^10.1.8",
+        "eslint-plugin-prettier": "^5.5.4",
         "husky": "^8.0.3",
         "lint-staged": "^15.5.2",
         "nodemon": "^3.0.1",
