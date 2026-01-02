@@ -96,7 +96,7 @@ class WechatScheduler {
             this.logger.info('正在调用 Coze API...');
             const response = await axios.post(this.config.cozeUrl, data, {
                 headers,
-                timeout: 30000
+                timeout: 600000 // 10 minutes timeout for long-running Coze API
             });
 
             if (response.status === 200) {
