@@ -13,7 +13,7 @@
         "docker:build": "docker build -t wechat-scheduler .",
         "docker:run": "docker run -d --name wechat-scheduler --env-file .env wechat-scheduler",
         "docker:logs": "docker logs -f wechat-scheduler",
-        "test": "echo \"Error: no test specified\" && exit 1",
+        "test": "echo \"No test specified - skipping tests\"",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
         "format": "prettier --write .",
@@ -42,6 +42,8 @@
         "winston": "^3.11.0"
     },
     "devDependencies": {
+        "@commitlint/cli": "^20.3.0",
+        "@commitlint/config-conventional": "^20.3.0",
         "eslint": "^8.54.0",
         "husky": "^8.0.3",
         "lint-staged": "^15.5.2",
